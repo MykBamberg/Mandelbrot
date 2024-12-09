@@ -64,7 +64,7 @@ Arguments:"
                 , help_information.options);
             return;
         }
-        
+
         fg_color = to!uint(fg_string, 16);
         bg_color = to!uint(bg_string, 16);
         bounds = map!(to!double)(bounds_string.split(",")).array;
@@ -74,15 +74,15 @@ Arguments:"
     }
 
     /* Draw Image */
-    
+
     foreach (y; 0..height) {
         foreach (x; 0..width) {
             double a = map_num_range(x, 0, width, bounds[0], bounds[2]);
             double b = map_num_range(y, 0, height, bounds[1], bounds[3]);
-            
+
             double ca = a;
             double cb = b;
-            
+
             int n;
             for (n = 0; n < max_iter; n++) {
                 double aa = a * a - b * b;
@@ -93,7 +93,7 @@ Arguments:"
                     break;
                 }
             }
-            
+
             double t = (n == max_iter) ? 0 : cast(double)n / max_iter;
 
             if (root != 0) {
