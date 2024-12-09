@@ -17,6 +17,7 @@ import std.math;
 import std.getopt;
 import std.conv;
 import std.string;
+import std.regex;
 
 void main(string[] args) {
     immutable max_iter = 64;
@@ -60,16 +61,33 @@ mandelbrot -x 100 -y 30 -f 4040ff -b 080810
 mandelbrot -p 15 -r 2
 mandelbrot -a -1.5,-0.5,-0.75,0 -x 100 -y 40
 
-Arguments:"
-                , help_information.options);
+Arguments:",
+                help_information.options);
             return;
+        }
+
+        if (!fg_string.match(r"^[0-9A-Fa-f]{6}$")
+            || !bg_string.match(r"^[0-9A-Fa-f]{6}$")) {
+            throw new Exception("Colors must be 6-digit hex values");
         }
 
         fg_color = to!uint(fg_string, 16);
         bg_color = to!uint(bg_string, 16);
-        bounds = map!(to!double)(bounds_string.split(",")).array;
-    } catch (Throwable) {
-        writeln("Invalid arguments, more info with --help");
+
+        immutable bounds_error = "Bounds must be a comma separated list of four decimal numbers";
+
+        try {
+            bounds = map!(to!double)(bounds_string.split(",")).array;
+        } catch (Exception) {
+            throw new Exception(bounds_error);
+        }
+
+        if (bounds.length != 4) {
+            throw new Exception(bounds_error);
+        }
+
+    } catch (Exception e) {
+        writefln("Error: %s\nMore info with --help", e.msg);
         return;
     }
 
