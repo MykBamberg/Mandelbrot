@@ -33,6 +33,8 @@ void main(string[] args) {
     ubyte posterization = 0;
     double root = 0;
 
+    bool hash_colors = false;
+
     /* Parse Arguments */
 
     try {
@@ -48,7 +50,8 @@ void main(string[] args) {
             "b|background", "Background color in hex", &bg_string,
             "p|posterization", "Set posterization level", &posterization,
             "r|root", "Set the nth root of the brightness level", &root,
-            "a|bounds", "Set visible part of the fractal 'x0,y0,x1,y1'", &bounds_string
+            "a|bounds", "Set visible part of the fractal 'x0,y0,x1,y1'", &bounds_string,
+            "q|hash", "Hash brightness values", &hash_colors
         );
 
         if (help_information.helpWanted) {
@@ -122,7 +125,10 @@ Arguments:",
                 t = cast(ubyte)(t * posterization) / cast(double)posterization;
             }
 
-            uint color = color_lerp(bg_color, fg_color, t);
+            uint color = hash_colors ?
+                color_hash(bg_color, fg_color, t) :
+                color_lerp(bg_color, fg_color, t);
+
             writef("\x1b[48;2;%d;%d;%dm ",
                 /* r: */ (color >> 16) & 0xff,
                 /* g: */ (color >> 8) & 0xff,
@@ -147,4 +153,10 @@ uint color_lerp(uint col_a, uint col_b, double t) {
 
 double map_num_range(double value, double s0, double s1, double t0, double t1) {
     return t0 + (t1 - t0) * ((value - s0) / (s1 - s0));
+}
+
+uint color_hash(uint bg, uint fg, double t) {
+    uint val = cast(uint)(t * 1000);
+    val = ((val >> 16) ^ val) * 0x45d9f3b >> 16;
+    return color_lerp(bg, fg, (val % 256) / 256.0 * t);
 }

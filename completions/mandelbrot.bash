@@ -3,7 +3,7 @@ _mandelbrot() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="-y --height -x --width -f --foreground -b --background -p --posterization -r --root -a --bounds -h --help"
+    opts="-y --height -x --width -f --foreground -b --background -p --posterization -r --root -a --bounds -q --hash -h --help"
 
     case "${prev}" in
         -y|--height|-x|--width)
