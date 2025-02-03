@@ -110,9 +110,9 @@ Arguments:",
 
     foreach (y; 0..height) {
         foreach (x; 0..width) {
-            double a = map_num_range(x, 0, width, bounds[0], bounds[2]);
-            double b_f = map_num_range(y - 0.25, 0, height, bounds[1], bounds[3]);
-            double b_b = map_num_range(ascii_only ? y : y + 0.25, 0, height, bounds[1], bounds[3]);
+            double a = map_num_range(x, 0, width - 1, bounds[0], bounds[2]);
+            double b_f = map_num_range(y - 0.25, 0, height - 1, bounds[1], bounds[3]);
+            double b_b = map_num_range(ascii_only ? y : y + 0.25, 0, height - 1, bounds[1], bounds[3]);
 
             uint f_color = intensity_to_color(
                 mandelbrot(a, b_f, max_iter),
@@ -123,12 +123,12 @@ Arguments:",
                 root, posterization, hash_colors, fg_color, bg_color);
 
             writef("\x1b[48;2;%d;%d;%dm\x1b[38;2;%d;%d;%dm",
-                /* foreground r: */ (b_color >> 16) & 0xff,
-                /* foreground g: */ (b_color >> 8) & 0xff,
-                /* foreground b: */ (b_color >> 0) & 0xff,
-                /* background r: */ (f_color >> 16) & 0xff,
-                /* background g: */ (f_color >> 8) & 0xff,
-                /* background b: */ (f_color >> 0) & 0xff);
+                /* background r: */ (b_color >> 16) & 0xff,
+                /* background g: */ (b_color >> 8) & 0xff,
+                /* background b: */ (b_color >> 0) & 0xff,
+                /* foreground r: */ (f_color >> 16) & 0xff,
+                /* foreground g: */ (f_color >> 8) & 0xff,
+                /* foreground b: */ (f_color >> 0) & 0xff);
 
             write(ascii_only ? " " : "▀");
         }
