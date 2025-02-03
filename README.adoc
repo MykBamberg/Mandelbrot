@@ -68,10 +68,16 @@ image::./resources/normal.png[]
 ----
 $ mandelbrot -x 100 -y 60 -f 4040ff -b 080810
 ----
-
 image::./resources/color_size.png[]
+
 [source, bash]
 ----
 $ mandelbrot -p 18 -r 1.7 -q
 ----
 image::./resources/posterization_hash_root.png[]
+
+[source, bash]
+----
+$ mandelbrot -a -1.50001692,-6.77048840e-05,-1.49988151,6.77048840e-05 -q -r 1.7 -x 100 -y 80
+----
+image::./resources/zoom.png[]
