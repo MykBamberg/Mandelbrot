@@ -22,7 +22,7 @@ import std.regex;
 void main(string[] args) {
     immutable max_iter = 64;
 
-    int height = 20;
+    int height = 40;
     int width = 65;
 
     uint fg_color;
@@ -34,6 +34,7 @@ void main(string[] args) {
     double root = 0;
 
     bool hash_colors = false;
+    bool ascii_only = false;
 
     /* Parse Arguments */
 
@@ -51,6 +52,7 @@ void main(string[] args) {
             "p|posterization", "Set posterization level", &posterization,
             "r|root", "Set the nth root of the brightness level", &root,
             "a|bounds", "Set visible part of the fractal 'x0,y0,x1,y1'", &bounds_string,
+            "t|ascii", "Only use ASCII characters", &ascii_only,
             "q|hash", "Hash brightness values", &hash_colors
         );
 
@@ -60,9 +62,9 @@ void main(string[] args) {
 mandelbrot [OPTIONS]
 
 Examples:
-mandelbrot -x 100 -y 30 -f 4040ff -b 080810
+mandelbrot -x 100 -y 60 -f 4040ff -b 080810
 mandelbrot -p 15 -r 2
-mandelbrot -a -1.5,-0.5,-0.75,0 -x 100 -y 40
+mandelbrot -a -1.5,-0.5,-0.75,0 -x 100 -y 80
 
 Arguments:",
                 help_information.options);
@@ -94,51 +96,72 @@ Arguments:",
         return;
     }
 
+    /* Halve row count as one character represents two pixels */
+    height /= 2;
+
     /* Draw Image */
 
     foreach (y; 0..height) {
         foreach (x; 0..width) {
             double a = map_num_range(x, 0, width, bounds[0], bounds[2]);
-            double b = map_num_range(y, 0, height, bounds[1], bounds[3]);
+            double b_f = map_num_range(y - 0.25, 0, height, bounds[1], bounds[3]);
+            double b_b = map_num_range(ascii_only ? y : y + 0.25, 0, height, bounds[1], bounds[3]);
 
-            double ca = a;
-            double cb = b;
+            uint f_color = intensity_to_color(
+                mandelbrot(a, b_f, max_iter),
+                root, posterization, hash_colors, fg_color, bg_color);
 
-            int n;
-            for (n = 0; n < max_iter; n++) {
-                double aa = a * a - b * b;
-                double bb = 2 * a * b;
-                a = aa + ca;
-                b = bb + cb;
-                if (a * a + b * b > 4) {
-                    break;
-                }
-            }
+            uint b_color = intensity_to_color(
+                mandelbrot(a, b_b, max_iter),
+                root, posterization, hash_colors, fg_color, bg_color);
 
-            double t = (n == max_iter) ? 0 : cast(double)n / max_iter;
+            writef("\x1b[48;2;%d;%d;%dm\x1b[38;2;%d;%d;%dm",
+                /* foreground r: */ (b_color >> 16) & 0xff,
+                /* foreground g: */ (b_color >> 8) & 0xff,
+                /* foreground b: */ (b_color >> 0) & 0xff,
+                /* background r: */ (f_color >> 16) & 0xff,
+                /* background g: */ (f_color >> 8) & 0xff,
+                /* background b: */ (f_color >> 0) & 0xff);
 
-            if (root != 0) {
-                t = pow(t, (1 / root));
-            }
-
-            if (posterization != 0) {
-                t = cast(ubyte)(t * posterization) / cast(double)posterization;
-            }
-
-            uint color = hash_colors ?
-                color_hash(bg_color, fg_color, t) :
-                color_lerp(bg_color, fg_color, t);
-
-            writef("\x1b[48;2;%d;%d;%dm ",
-                /* r: */ (color >> 16) & 0xff,
-                /* g: */ (color >> 8) & 0xff,
-                /* b: */ (color >> 0) & 0xff);
+            write(ascii_only ? " " : "▀");
         }
         writeln("\x1b[0m");
     }
 }
 
-uint color_lerp(uint col_a, uint col_b, double t) {
+@nogc pure nothrow double mandelbrot(double a, double b, uint max_iter) {
+    double ca = a;
+    double cb = b;
+
+    int n;
+    for (n = 0; n < max_iter; n++) {
+        double aa = a * a - b * b;
+        double bb = 2 * a * b;
+        a = aa + ca;
+        b = bb + cb;
+        if (a * a + b * b > 4) {
+            break;
+        }
+    }
+
+    return (n == max_iter) ? 0 : cast(double)n / max_iter;
+}
+
+@nogc pure nothrow uint intensity_to_color(double t, double root, double posterization, bool hash_colors, uint fg, uint bg) {
+    if (root != 0) {
+        t = pow(t, (1 / root));
+    }
+
+    if (posterization != 0) {
+        t = cast(ubyte)(t * posterization) / cast(double)posterization;
+    }
+
+    return hash_colors ?
+        color_hash(bg, fg, t) :
+        color_lerp(bg, fg, t);
+}
+
+@nogc pure nothrow uint color_lerp(uint col_a, uint col_b, double t) {
     ubyte r_a = (col_a >> 16) & 0xff;
     ubyte g_a = (col_a >> 8) & 0xff;
     ubyte b_a = (col_a >> 0) & 0xff;
@@ -151,11 +174,11 @@ uint color_lerp(uint col_a, uint col_b, double t) {
     return (r_ret << 16) + (g_ret << 8) + b_ret;
 }
 
-double map_num_range(double value, double s0, double s1, double t0, double t1) {
+@nogc pure nothrow double map_num_range(double value, double s0, double s1, double t0, double t1) {
     return t0 + (t1 - t0) * ((value - s0) / (s1 - s0));
 }
 
-uint color_hash(uint bg, uint fg, double t) {
+@nogc pure nothrow uint color_hash(uint bg, uint fg, double t) {
     uint val = cast(uint)(t * 1000);
     val = ((val >> 16) ^ val) * 0x45d9f3b >> 16;
     return color_lerp(bg, fg, (val % 256) / 256.0 * t);
