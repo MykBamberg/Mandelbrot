@@ -88,3 +88,9 @@ image::./resources/posterization_hash_root.png[]
 $ mandelbrot -a -1.50001692,-6.77048840e-05,-1.49988151,6.77048840e-05 -q -r 1.7 -x 100 -y 80
 ----
 image::./resources/zoom.png[]
+
+[source, bash]
+----
+$ mandelbrot -x 24000 -y 16000 -i 256 -r 2 -q -o output.bmp
+----
+image::./resources/output.png[]
