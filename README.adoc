@@ -11,6 +11,8 @@ A CLI tool that generates colorful visualizations of the Mandelbrot set in your 
 * https://en.wikipedia.org/wiki/Posterization[Posterization]
 * Brightness adjustment
 * Parallelization
+* ANSI escape code 24 bit color output
+* Bitmap image output
 
 == Build
 
@@ -48,6 +50,7 @@ Arguments:
 -t         --ascii Only use ASCII characters
 -q          --hash Hash brightness values, creates a strong visual variation between color bands
 -i    --iterations Maximum number of iterations
+-o        --output Output as Bitmap image
 ----
 
 === Examples
@@ -57,6 +60,7 @@ Arguments:
 mandelbrot -x 100 -y 60 -f 4040ff -b 080810
 mandelbrot -p 15 -r 2
 mandelbrot -a -1.5,-0.5,-0.75,0 -x 100 -y 80
+mandelbrot -x 1500 -y 1000 -o ./output.bmp
 ----
 
 == Gallery

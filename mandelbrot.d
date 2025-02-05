@@ -46,6 +46,8 @@ void main(string[] args) {
     bool hash_colors = false;
     bool ascii_only = false;
 
+    string bmp_output = "";
+
     /* Parse Arguments */
 
     try {
@@ -64,7 +66,8 @@ void main(string[] args) {
             "a|bounds", "Set visible part of the fractal 'x0,y0,x1,y1'", &bounds_string,
             "t|ascii", "Only use ASCII characters", &ascii_only,
             "q|hash", "Hash brightness values, creates a strong visual variation between color bands", &hash_colors,
-            "i|iterations", "Maximum number of iterations", &max_iter
+            "i|iterations", "Maximum number of iterations", &max_iter,
+            "o|output", "Output as Bitmap image", &bmp_output
         );
 
         if (help_information.helpWanted) {
@@ -110,13 +113,18 @@ Arguments:",
             throw new Exception(bounds_error);
         }
 
+        if (bmp_output == "-") {
+            bmp_output = "/dev/stdout";
+        }
     } catch (Exception e) {
         writefln("Error: %s\nMore info with --help", e.msg);
         return;
     }
 
     /* Increase height to nearest even number */
-    height += height % 2;
+    if (bmp_output == "") {
+        height += height % 2;
+    }
 
     /* Calculate colors */
     auto colors = new uint[height * width];
@@ -129,6 +137,44 @@ Arguments:",
         color = intensity_to_color(
             mandelbrot(a, b, max_iter),
             root, posterization, hash_colors, fg_color, bg_color);
+    }
+
+    /* Output Bitmap file */
+    if (bmp_output != "") {
+        /* Size of full header / offset of image data */
+        immutable offset = 54;
+        uint file_size = offset + cast(uint)(uint.sizeof * colors.length);
+        ubyte[] header = [
+            /* BMP header */
+            'B', 'M',
+            file_size & 0xff, file_size >> 8 & 0xff, file_size >> 16 & 0xff, file_size >> 24 & 0xff,
+            0, 0,
+            0, 0,
+            offset & 0xff, offset >> 8 & 0xff, offset >> 16 & 0xff, offset >> 24 & 0xff,
+            /* BITMAPINFOHEADER */
+            40, 0, 0, 0,
+            width & 0xff, width >> 8 & 0xff, width >> 16 & 0xff, width >> 24 & 0xff,
+            height & 0xff, height >> 8 & 0xff, height >> 16 & 0xff, height >> 24 & 0xff,
+            1, 0,
+            32, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0b11000100, 0b00001110, 0, 0,
+            0b11000100, 0b00001110, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0
+        ];
+
+        try {
+            auto f = File(bmp_output, "wb");
+            f.rawWrite(header);
+            f.rawWrite(colors);
+            f.close();
+        } catch (Exception e) {
+            writefln("Error: %s", e.msg);
+        }
+
+        return;
     }
 
     /* Display colors */

@@ -3,7 +3,7 @@ _mandelbrot() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="-y --height -x --width -f --foreground -b --background -p --posterization -r --root -a --bounds -q --hash -h --help -t --ascii -i --iterations"
+    opts="-y --height -x --width -f --foreground -b --background -p --posterization -r --root -a --bounds -q --hash -h --help -t --ascii -i --iterations -o --output"
 
     case "${prev}" in
         -y|--height|-x|--width)
@@ -28,6 +28,15 @@ _mandelbrot() {
             ;;
         -i|--iterations)
             COMPREPLY=( $(compgen -W "32 64 128 256 512 1024" -- ${cur}) )
+            return 0
+            ;;
+        -o|--output)
+            _filedir
+            if [ ${#COMPREPLY[@]} -eq 0 ]; then
+                if [[ "$cur" != *\.* ]]; then
+                    COMPREPLY=( $(compgen -W "output.bmp mandelbrot.bmp" -- ${cur}) )
+                fi
+            fi
             return 0
             ;;
         *)
