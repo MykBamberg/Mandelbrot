@@ -5,10 +5,12 @@ A CLI tool that generates colorful visualizations of the Mandelbrot set in your 
 == Features
 
 * Customizable colors
+* Customizable maximum iteration number
 * Adjustable output dimensions
 * Configurable view bounds
 * https://en.wikipedia.org/wiki/Posterization[Posterization]
 * Brightness adjustment
+* Parallelization
 
 == Build
 
@@ -44,7 +46,8 @@ Arguments:
 -r          --root Set the nth root of the brightness level
 -a        --bounds Set visible part of the fractal 'x0,y0,x1,y1'
 -t         --ascii Only use ASCII characters
--q          --hash Hash brightness values
+-q          --hash Hash brightness values, creates a strong visual variation between color bands
+-i    --iterations Maximum number of iterations
 ----
 
 === Examples

@@ -25,9 +25,12 @@ import std.getopt;
 import std.conv;
 import std.string;
 import std.regex;
+import std.parallelism;
 
 void main(string[] args) {
-    immutable max_iter = 64;
+    immutable work_unit_size = 256;
+
+    uint max_iter = 64;
 
     int height = 40;
     int width = 65;
@@ -60,7 +63,8 @@ void main(string[] args) {
             "r|root", "Set the nth root of the brightness level", &root,
             "a|bounds", "Set visible part of the fractal 'x0,y0,x1,y1'", &bounds_string,
             "t|ascii", "Only use ASCII characters", &ascii_only,
-            "q|hash", "Hash brightness values", &hash_colors
+            "q|hash", "Hash brightness values, creates a strong visual variation between color bands", &hash_colors,
+            "i|iterations", "Maximum number of iterations", &max_iter
         );
 
         if (help_information.helpWanted) {
@@ -76,6 +80,14 @@ mandelbrot -a -1.5,-0.5,-0.75,0 -x 100 -y 80
 Arguments:",
                 help_information.options);
             return;
+        }
+
+        if (width <= 0) {
+            width = max(-width, 1);
+        }
+
+        if (height <= 0) {
+            height = max(-height, 1);
         }
 
         if (!fg_string.match(r"^[0-9A-Fa-f]{6}$")
@@ -103,24 +115,27 @@ Arguments:",
         return;
     }
 
-    /* Halve row count as one character represents two pixels */
-    height /= 2;
+    /* Increase height to nearest even number */
+    height += height % 2;
 
-    /* Draw Image */
+    /* Calculate colors */
+    auto colors = new uint[height * width];
 
-    foreach (y; 0..height) {
+    foreach (i, ref color; taskPool.parallel(colors, work_unit_size)) {
+        ulong y = i / width;
+        ulong x = i % width;
+        double a = map_num_range(x, 0, width - 1, bounds[0], bounds[2]);
+        double b = map_num_range(y, 0, height - 1, bounds[1], bounds[3]);
+        color = intensity_to_color(
+            mandelbrot(a, b, max_iter),
+            root, posterization, hash_colors, fg_color, bg_color);
+    }
+
+    /* Display colors */
+    foreach (y; 0..height / 2) {
         foreach (x; 0..width) {
-            double a = map_num_range(x, 0, width - 1, bounds[0], bounds[2]);
-            double b_f = map_num_range(y - 0.25, 0, height - 1, bounds[1], bounds[3]);
-            double b_b = map_num_range(ascii_only ? y : y + 0.25, 0, height - 1, bounds[1], bounds[3]);
-
-            uint f_color = intensity_to_color(
-                mandelbrot(a, b_f, max_iter),
-                root, posterization, hash_colors, fg_color, bg_color);
-
-            uint b_color = intensity_to_color(
-                mandelbrot(a, b_b, max_iter),
-                root, posterization, hash_colors, fg_color, bg_color);
+            uint f_color = colors[2 * y * width + x];
+            uint b_color = colors[(2 * y + 1) * width + x ];
 
             writef("\x1b[48;2;%d;%d;%dm\x1b[38;2;%d;%d;%dm",
                 /* background r: */ (b_color >> 16) & 0xff,

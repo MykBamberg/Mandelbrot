@@ -3,7 +3,7 @@ _mandelbrot() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="-y --height -x --width -f --foreground -b --background -p --posterization -r --root -a --bounds -q --hash -h --help -t --ascii"
+    opts="-y --height -x --width -f --foreground -b --background -p --posterization -r --root -a --bounds -q --hash -h --help -t --ascii -i --iterations"
 
     case "${prev}" in
         -y|--height|-x|--width)
@@ -24,6 +24,10 @@ _mandelbrot() {
             ;;
         -a|--bounds)
             COMPREPLY=( $(compgen -W "-1.5,-0.5,-0.75,0 -2,-2,2,2" -- ${cur}) )
+            return 0
+            ;;
+        -i|--iterations)
+            COMPREPLY=( $(compgen -W "32 64 128 256 512 1024" -- ${cur}) )
             return 0
             ;;
         *)
