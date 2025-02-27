@@ -72,16 +72,15 @@ void main(string[] args) {
 
         if (help_information.helpWanted) {
             defaultGetoptPrinter(
-"Usage:
-mandelbrot [OPTIONS]
-
-Examples:
-mandelbrot -x 100 -y 60 -f 4040ff -b 080810
-mandelbrot -p 15 -r 2
-mandelbrot -a -1.5,-0.5,-0.75,0 -x 100 -y 80
-
-Arguments:",
-                help_information.options);
+                "Usage:\n" ~
+                "mandelbrot [OPTIONS]\n\n" ~
+                "Examples:\n" ~
+                "mandelbrot -x 100 -y 60 -f 4040ff -b 080810\n" ~
+                "mandelbrot -p 15 -r 2\n" ~
+                "mandelbrot -a -1.5,-0.5,-0.75,0 -x 100 -y 80\n\n" ~
+                "Arguments:\n",
+                help_information.options
+            );
             return;
         }
 
@@ -139,49 +138,60 @@ Arguments:",
             root, posterization, hash_colors, fg_color, bg_color);
     }
 
-    /* Output Bitmap file */
-    if (bmp_output != "") {
-        /* Size of full header / offset of image data */
-        immutable offset = 54;
-        uint file_size = offset + cast(uint)(uint.sizeof * colors.length);
-        ubyte[] header = [
-            /* BMP header */
-            'B', 'M',
-            file_size & 0xff, file_size >> 8 & 0xff, file_size >> 16 & 0xff, file_size >> 24 & 0xff,
-            0, 0,
-            0, 0,
-            offset & 0xff, offset >> 8 & 0xff, offset >> 16 & 0xff, offset >> 24 & 0xff,
-            /* BITMAPINFOHEADER */
-            40, 0, 0, 0,
-            width & 0xff, width >> 8 & 0xff, width >> 16 & 0xff, width >> 24 & 0xff,
-            height & 0xff, height >> 8 & 0xff, height >> 16 & 0xff, height >> 24 & 0xff,
-            1, 0,
-            32, 0,
-            0, 0, 0, 0,
-            0, 0, 0, 0,
-            0b11000100, 0b00001110, 0, 0,
-            0b11000100, 0b00001110, 0, 0,
-            0, 0, 0, 0,
-            0, 0, 0, 0
-        ];
+    if (bmp_output == "") {
+        output_ansi_escape_text(colors, width, height, ascii_only);
+    } else {
+        output_bmp(colors, width, height, bmp_output);
+    }
+}
 
-        try {
-            auto f = File(bmp_output, "wb");
-            f.rawWrite(header);
-            f.rawWrite(colors);
-            f.close();
-        } catch (Exception e) {
-            writefln("Error: %s", e.msg);
-        }
+void output_bmp(uint[] colors, uint width, uint height, string file_path) {
+    /* Size of full header / offset of image data */
+    immutable offset = 54;
+    int file_size = offset + cast(int)(uint.sizeof * colors.length);
 
-        return;
+    ubyte[] int_to_bytearray(int i) {
+        return [i & 0xff, i >> 8 & 0xff, i >> 16 & 0xff, i >> 24 & 0xff];
     }
 
-    /* Display colors */
+    /* BMP header */
+    ubyte[] header = [
+        'B', 'M'];
+    header ~= int_to_bytearray(file_size); header ~= [
+        0, 0,
+        0, 0];
+    header ~= int_to_bytearray(offset);
+
+    /* BITMAPINFOHEADER */
+    header ~= [
+        40, 0, 0, 0];
+    header ~= int_to_bytearray(width);
+    header ~= int_to_bytearray(height); header ~= [
+        1, 0,
+        32, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0b11000100, 0b00001110, 0, 0,
+        0b11000100, 0b00001110, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0
+    ];
+
+    try {
+        auto f = File(file_path, "wb");
+        scope(exit) f.close();
+        f.rawWrite(header);
+        f.rawWrite(colors);
+    } catch (Exception e) {
+        writefln("Error: %s", e.msg);
+    }
+}
+
+void output_ansi_escape_text(uint[] colors, uint width, uint height, bool ascii_only) {
     foreach (y; 0..height / 2) {
         foreach (x; 0..width) {
             uint f_color = colors[2 * y * width + x];
-            uint b_color = colors[(2 * y + 1) * width + x ];
+            uint b_color = colors[(2 * y + 1) * width + x];
 
             writef("\x1b[48;2;%d;%d;%dm\x1b[38;2;%d;%d;%dm",
                 /* background r: */ (b_color >> 16) & 0xff,
@@ -201,7 +211,7 @@ Arguments:",
     double ca = a;
     double cb = b;
 
-    int n;
+    uint n;
     for (n = 0; n < max_iter; n++) {
         double aa = a * a - b * b;
         double bb = 2 * a * b;
